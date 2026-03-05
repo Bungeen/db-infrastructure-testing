@@ -1,0 +1,161 @@
+Enum "person"."gender" {
+  "male"
+  "female"
+  "other"
+}
+
+Enum "person"."role" {
+  "Spectator"
+  "Trustee"
+  "Admin"
+}
+
+Table "person"."users" {
+  "user_id" int8 [pk, not null, increment]
+  "login" text [not null]
+  "personality_id" int8
+  "password_id" int8 [not null]
+  "description" text
+  "role" person.role [not null]
+  "email" text [not null]
+}
+
+Table "person"."passwords" {
+  "password_id" int8 [pk, not null, increment]
+  "created_at" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "password_hash" varchar(255) [not null]
+}
+
+Table "person"."personalities" {
+  "personality_id" int8 [pk, not null, increment]
+  "first_name" text [not null]
+  "middle_name" text
+  "last_name" text
+  "modified_date" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "sex" person.gender [not null]
+}
+
+Table "dictionary"."categories" {
+  "category_id" int8 [pk, not null, increment, note: 'Primary key for Category']
+  "name" text [not null]
+  "description" text
+}
+
+Table "dictionary"."subcategories" {
+  "subcategory_id" int8 [pk, not null, increment]
+  "category_id" int8 [not null]
+  "name" text [not null]
+  "description" text
+}
+
+Table "dictionary"."income_transaction_types" {
+  "income_transaction_type_id" int8 [pk, not null, increment]
+  "name" text [not null]
+  "description" text
+}
+
+Table "dictionary"."expense_transaction_types" {
+  "expense_transaction_typeid" int8 [pk, not null, increment]
+  "name" text [not null]
+  "description" text
+}
+
+Table "planing"."budget_items" {
+  "budget_item_id" int8 [pk, not null, increment]
+  "subcategory_id" int8 [not null]
+  "description" text
+  "price" int8 [not null]
+  "user_id" int8 [not null]
+  "modified_date" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "year" int4 [not null]
+}
+
+Table "transaction"."income_transactions" {
+  "income_transaction_id" int8 [pk, not null, increment]
+  "price" int8 [not null]
+  "date" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "user_id" int8 [not null]
+  "description" text
+  "modified_date" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "income_transaction_type_id" int8 [not null]
+  "category_id" int8 [not null]
+}
+
+Table "transaction"."expense_transactions" {
+  "expense_transaction_id" int8 [pk, not null, increment]
+  "price" int8 [not null]
+  "date" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "user_id" int8 [not null]
+  "description" text
+  "modified_date" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "expense_transaction_type_id" int8 [not null]
+  "subcategory_id" int8 [not null]
+}
+
+Table "transaction"."receipt_files" {
+  "receipt_file_id" int8 [pk, not null, increment]
+  "raw_file" bytea [not null]
+}
+
+Table "transaction"."receipt_links" {
+  "receipt_link_id" int8 [pk, not null]
+  "url" text [not null]
+}
+
+Table "transaction"."income_files" {
+  "receipt_file_id" int8 [not null]
+  "income_transaction_id" int8 [not null]
+}
+
+Table "transaction"."income_links" {
+  "income_transaction_id" int8 [not null]
+  "receipt_link_id" int8 [not null]
+}
+
+Table "transaction"."expense_links" {
+  "expense_transaction_id" int8 [not null]
+  "receipt_link_id" int8 [not null]
+}
+
+Table "transaction"."expense_files" {
+  "receipt_file_id" int8 [not null]
+  "expense_transaction_id" int8 [not null]
+}
+
+Ref "fk_category_id":"dictionary"."categories"."category_id" < "dictionary"."subcategories"."category_id"
+
+Ref "fk_password_id":"person"."passwords"."password_id" < "person"."users"."password_id"
+
+Ref "fk_personality_id":"person"."personalities"."personality_id" < "person"."users"."personality_id"
+
+Ref "fk_subcategory_id":"dictionary"."subcategories"."subcategory_id" < "planing"."budget_items"."subcategory_id"
+
+Ref "fk_user_id":"person"."users"."user_id" < "planing"."budget_items"."user_id"
+
+Ref "fk_expense_transaction_id":"transaction"."expense_transactions"."expense_transaction_id" < "transaction"."expense_files"."expense_transaction_id"
+
+Ref "fk_receipt_file_id":"transaction"."receipt_files"."receipt_file_id" < "transaction"."expense_files"."receipt_file_id"
+
+Ref "fk_expense_transaction_id":"transaction"."expense_transactions"."expense_transaction_id" < "transaction"."expense_links"."expense_transaction_id"
+
+Ref "fk_receipt_link_id":"transaction"."receipt_links"."receipt_link_id" < "transaction"."expense_links"."receipt_link_id"
+
+Ref "fk_expense_transaction_type_id":"dictionary"."expense_transaction_types"."expense_transaction_typeid" < "transaction"."expense_transactions"."expense_transaction_type_id"
+
+Ref "fk_subcategory_id":"dictionary"."subcategories"."subcategory_id" < "transaction"."expense_transactions"."subcategory_id"
+
+Ref "fk_user_id":"person"."users"."user_id" < "transaction"."expense_transactions"."user_id"
+
+Ref "fk_income_transaction_id":"transaction"."income_transactions"."income_transaction_id" < "transaction"."income_files"."income_transaction_id"
+
+Ref "fk_receipt_file_id":"transaction"."receipt_files"."receipt_file_id" < "transaction"."income_files"."receipt_file_id"
+
+Ref "fk_income_transaction_id":"transaction"."income_transactions"."income_transaction_id" < "transaction"."income_links"."income_transaction_id"
+
+Ref "fk_receipt_link_id":"transaction"."receipt_links"."receipt_link_id" < "transaction"."income_links"."receipt_link_id"
+
+Ref "fk_category_id":"dictionary"."categories"."category_id" < "transaction"."income_transactions"."category_id"
+
+Ref "fk_income_transaction_type_id":"dictionary"."income_transaction_types"."income_transaction_type_id" < "transaction"."income_transactions"."income_transaction_type_id"
+
+Ref "fk_user_id":"person"."users"."user_id" < "transaction"."income_transactions"."user_id"

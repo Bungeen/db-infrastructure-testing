@@ -6,6 +6,8 @@ sleep 5
 
 echo "Tests"
 
+export LIQUIBASE_COMMAND_URL="${TEST_DB_URL}"
+
 for f in /liquibase/changelog/*.sql; do
   echo "Start " $f 
   /scripts/ci-up-one.sh $f
@@ -14,6 +16,8 @@ for f in /liquibase/changelog/*.sql; do
 done
 
 echo "Seqwall passed"
+
+export LIQUIBASE_COMMAND_URL="${MAIN_DB_URL}"
 
 echo "Applying migrations"
 

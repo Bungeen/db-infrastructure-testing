@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  postgres:
+    build: 
+      context: .
+      dockerfile: Dockerfile.postgres
+    container_name: postgres_data_base
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: ${PGDATA}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+  
+  liquibase:
+    image: liquibase/liquibase:4.20
+    container_name: liquibase_migrations
+    environment:
+      LIQUIBASE_COMMAND_CHANGELOG_FILE: changelog/database_changelog.xml
+      LIQUIBASE_COMMAND_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      LIQUIBASE_COMMAND_USERNAME: ${POSTGRES_USER}
+      LIQUIBASE_COMMAND_PASSWORD: ${POSTGRES_PASSWORD}
+
+      LIQUIBASE_COMMAND_CONTEXTS: ${APP_ENV}
+
+      seedCount: ${SEED_COUNT}
+
+    volumes:
+      - ./migrations:/liquibase/changelog
+      - ./seeds:/liquibase/seeds
+
+    command: >
+      bash -c "
+      if [ -n \"${MIGRATION_VERSION}\" ]; then
+        liquibase updateToTag ${MIGRATION_VERSION};
+      else
+        liquibase update;
+      fi
+      "
+
+    depends_on:
+      postgres:
+        condition: service_healthy

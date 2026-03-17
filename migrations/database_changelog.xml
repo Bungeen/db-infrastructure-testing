@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <include file="001_create_personalities_table.sql" relativeToChangelogFile="true"/>
+
+    <!-- Seeds -->
+    <include file="../seeds/001_seed_personalities.sql"
+             relativeToChangelogFile="true"/>
+
+    <changeSet id="tag-v1.0" author="mike">
+        <tagDatabase tag="v1.0"/>
+    </changeSet>
+
+    <include file="002_create_passwords_table.sql" relativeToChangelogFile="true"/>
+
+    <!-- Seeds -->
+    <include file="../seeds/002_seed_passwords.sql"
+             relativeToChangelogFile="true"/>
+
+    <changeSet id="tag-v1.1" author="mike">
+        <tagDatabase tag="v1.1"/>
+    </changeSet>
+
+    <include file="003_create_users_table.sql" relativeToChangelogFile="true"/>
+
+    <!-- Seeds -->
+    <include file="../seeds/003_seed_users.sql"
+             relativeToChangelogFile="true"/>
+
+    <changeSet id="tag-v1.2" author="mike">
+        <tagDatabase tag="v1.2"/>
+    </changeSet>
+
+    <include file="004_create_categories_table.sql" relativeToChangelogFile="true"/>
+
+    <!-- Seeds -->
+    <include file="../seeds/004_seed_categories.sql"
+             relativeToChangelogFile="true"/>
+
+    <changeSet id="tag-v1.3" author="mike">
+        <tagDatabase tag="v1.3"/>
+    </changeSet>
+
+    <include file="005_create_subcategories_table.sql" relativeToChangelogFile="true"/>
+
+    <!-- Seeds -->
+    <include file="../seeds/005_seed_subcategories.sql"
+             relativeToChangelogFile="true"/>
+
+    <changeSet id="tag-v1.4" author="mike">
+        <tagDatabase tag="v1.4"/>
+    </changeSet>
+
+    <include file="006_create_budget_planning_items_table.sql" relativeToChangelogFile="true"/>
+
+    <!-- Seeds -->
+    <include file="../seeds/006_budget_planning_items.sql"
+             relativeToChangelogFile="true"/>
+
+    <changeSet id="tag-v1.5" author="mike">
+        <tagDatabase tag="v1.5"/>
+    </changeSet>
+
+    <include file="007_receipt_files_links_tables.sql" relativeToChangelogFile="true"/>
+
+    <!-- Seeds -->
+    <include file="../seeds/007_seed_files_links.sql"
+             relativeToChangelogFile="true"/>
+
+    <changeSet id="tag-v1.6" author="mike">
+        <tagDatabase tag="v1.6"/>
+    </changeSet>
+
+    <include file="008_income_transactions_tables.sql" relativeToChangelogFile="true"/>
+
+    <!-- Seeds -->
+    <include file="../seeds/008_income_transactions.sql"
+             relativeToChangelogFile="true"/>
+
+    <changeSet id="tag-v1.7" author="mike">
+        <tagDatabase tag="v1.7"/>
+    </changeSet>
+
+    <include file="009_expense_transactions_tables.sql" relativeToChangelogFile="true"/>
+
+    <!-- Seeds -->
+    <include file="../seeds/009_expense_transactions.sql"
+             relativeToChangelogFile="true"/>
+
+    <changeSet id="tag-v1.8" author="mike">
+        <tagDatabase tag="v1.8"/>
+    </changeSet>
+
+</databaseChangeLog>

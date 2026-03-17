@@ -1,0 +1,8 @@
+# PostgreSQL data
+data/postgres/
+
+# Environment files
+.env
+
+# Docker
+.DS_Store

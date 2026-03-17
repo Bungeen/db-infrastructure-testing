@@ -9,5 +9,5 @@ FROM generate_series(1, ${seedCount} * 5);
 INSERT INTO transaction.receipt_files (raw_file)
 SELECT
     decode(md5(random()::text), 'hex')
-FROM generate_series(1, ${seedCount} * 5)
+FROM generate_series(1, ${seedCount} * 5);
 --rollback empty

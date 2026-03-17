@@ -39,16 +39,11 @@ services:
     volumes:
       - ./migrations:/liquibase/changelog
       - ./seeds:/liquibase/seeds
+      - ./scripts:/scripts
 
-    command: >
-      bash -c "
-      if [ -n \"${MIGRATION_VERSION}\" ]; then
-        liquibase updateToTag ${MIGRATION_VERSION};
-      else
-        liquibase update;
-      fi
-      "
+    entrypoint: ["/bin/bash", "/scripts/entrypoint.sh"]
 
     depends_on:
       postgres:
         condition: service_healthy
+    restart: "no"

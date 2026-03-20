@@ -1,0 +1,12 @@
+FROM liquibase/liquibase:4.20
+
+USER root
+
+RUN apt-get update && apt-get install -y curl tar \
+    && curl -L https://github.com/realkarych/seqwall/releases/download/v0.3.0/v0.3.0_seqwall_linux_amd64.tar.gz \
+    -o seqwall.tar.gz \
+    && tar -xzf seqwall.tar.gz \
+    && mv seqwall /usr/local/bin/seqwall \
+    && chmod +x /usr/local/bin/seqwall \
+    && rm -rf seqwall.tar.gz \
+    && apt-get clean

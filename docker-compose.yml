@@ -15,7 +15,6 @@ services:
       - "${POSTGRES_PORT}:5432"
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
-      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
@@ -34,10 +33,6 @@ services:
       LIQUIBASE_COMMAND_PASSWORD: ${POSTGRES_PASSWORD}
 
       LIQUIBASE_COMMAND_CONTEXTS: ${APP_ENV}
-
-      MAIN_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      TEST_DB_URL: jdbc:postgresql://postgres:5432/mydb_test
-
       seedCount: ${SEED_COUNT}
 
     volumes:
@@ -45,9 +40,48 @@ services:
       - ./seeds:/liquibase/seeds
       - ./scripts:/scripts
 
-    entrypoint: ["/bin/bash", "/scripts/entrypoint.sh"]
+    command: update
 
     depends_on:
       postgres:
         condition: service_healthy
+      seqwall:
+        condition: service_completed_successfully
+    restart: "no"
+
+  seqwall:
+    build: 
+      context: .
+      dockerfile: Dockerfile.seqwall
+    container_name: seqwall_tests
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    environment:
+      LIQUIBASE_COMMAND_CHANGELOG_FILE: changelog/database_changelog.xml
+      LIQUIBASE_COMMAND_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      LIQUIBASE_COMMAND_USERNAME: ${POSTGRES_USER}
+      LIQUIBASE_COMMAND_PASSWORD: ${POSTGRES_PASSWORD}
+      LIQUIBASE_COMMAND_CONTEXTS: ${APP_ENV}
+      POSTGRES_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+
+      seedCount: ${SEED_COUNT}
+
+    volumes:
+      - ./migrations:/liquibase/changelog
+      - ./scripts:/scripts
+      - ./seeds:/liquibase/seeds
+
+    working_dir: /liquibase
+
+    entrypoint: >
+      seqwall staircase
+      --postgres-url postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      --migrations-path /liquibase/changelog
+      --upgrade "/scripts/ci-up-one.sh"
+      --downgrade "/scripts/ci-down-one.sh"
+ 
+
     restart: "no"

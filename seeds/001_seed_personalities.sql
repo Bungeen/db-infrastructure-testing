@@ -16,4 +16,4 @@ SELECT
         ELSE 'other'::person.gender
     END
 FROM generate_series(1, ${SeedCount} * 20);
---rollback empty
+--rollback DROP EXTENSION faker; DROP EXTENSION plpython3u;

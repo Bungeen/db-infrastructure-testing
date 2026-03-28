@@ -11,10 +11,15 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       PGDATA: ${PGDATA}
+
+      METRICS_USER: ${METRICS_USER}
+      METRICS_PASSWORD: ${METRICS_PASSWORD}
+      SEQWALL_DB: ${SEQWALL_DB}
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
+      - ./scripts/init:/docker-entrypoint-initdb.d
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
@@ -45,43 +50,74 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      seqwall:
-        condition: service_completed_successfully
+      # seqwall:
+      #   condition: service_completed_successfully
     restart: "no"
 
-  seqwall:
-    build: 
-      context: .
-      dockerfile: Dockerfile.seqwall
-    container_name: seqwall_tests
+  # seqwall:
+  #   build: 
+  #     context: .
+  #     dockerfile: Dockerfile.seqwall
+  #   container_name: seqwall_tests
 
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+
+  #   environment:
+  #     LIQUIBASE_COMMAND_CHANGELOG_FILE: changelog/database_changelog.xml
+  #     LIQUIBASE_COMMAND_URL: jdbc:postgresql://postgres:5432/${SEQWALL_DB}
+  #     LIQUIBASE_COMMAND_USERNAME: ${POSTGRES_USER}
+  #     LIQUIBASE_COMMAND_PASSWORD: ${POSTGRES_PASSWORD}
+  #     LIQUIBASE_COMMAND_CONTEXTS: ${APP_ENV}
+  #     POSTGRES_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${SEQWALL_DB}?sslmode=disable
+
+  #     seedCount: ${SEED_COUNT}
+
+  #     SEQWALL_DB: ${SEQWALL_DB}
+
+  #   volumes:
+  #     - ./migrations:/liquibase/changelog
+  #     - ./scripts:/scripts
+  #     - ./seeds:/liquibase/seeds
+
+  #   working_dir: /liquibase
+
+  #   entrypoint: >
+  #     seqwall staircase
+  #     --postgres-url postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${SEQWALL_DB}?sslmode=disable
+  #     --migrations-path /liquibase/changelog
+  #     --upgrade "/scripts/ci-up-one.sh"
+  #     --downgrade "/scripts/ci-down-one.sh"
+
+  #   restart: "no"
+  
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter
+    container_name: postgres_exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${METRICS_USER}:${METRICS_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+    ports:
+      - "9187:9187"
     depends_on:
       postgres:
         condition: service_healthy
-
-    environment:
-      LIQUIBASE_COMMAND_CHANGELOG_FILE: changelog/database_changelog.xml
-      LIQUIBASE_COMMAND_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      LIQUIBASE_COMMAND_USERNAME: ${POSTGRES_USER}
-      LIQUIBASE_COMMAND_PASSWORD: ${POSTGRES_PASSWORD}
-      LIQUIBASE_COMMAND_CONTEXTS: ${APP_ENV}
-      POSTGRES_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
-
-      seedCount: ${SEED_COUNT}
-
+    restart: unless-stopped
+  
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
     volumes:
-      - ./migrations:/liquibase/changelog
-      - ./scripts:/scripts
-      - ./seeds:/liquibase/seeds
-
-    working_dir: /liquibase
-
-    entrypoint: >
-      seqwall staircase
-      --postgres-url postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
-      --migrations-path /liquibase/changelog
-      --upgrade "/scripts/ci-up-one.sh"
-      --downgrade "/scripts/ci-down-one.sh"
- 
-
-    restart: "no"
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+  
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+    restart: unless-stopped

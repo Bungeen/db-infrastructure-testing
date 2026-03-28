@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e
+
+echo "INIT WORKED" > /tmp/test.txt
+
+psql -v ON_ERROR_STOP=1 \
+  --username "$POSTGRES_USER" \
+  --dbname "$POSTGRES_DB" <<-EOSQL
+
+    CREATE USER ${METRICS_USER} WITH PASSWORD '${METRICS_PASSWORD}';
+    GRANT CONNECT ON DATABASE ${POSTGRES_DB} TO ${METRICS_USER};
+    GRANT pg_monitor TO ${METRICS_USER};
+
+    CREATE DATABASE ${SEQWALL_DB};
+
+EOSQL

@@ -50,47 +50,47 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # seqwall:
-      #   condition: service_completed_successfully
+      seqwall:
+        condition: service_completed_successfully
     restart: "no"
 
-  # seqwall:
-  #   build: 
-  #     context: .
-  #     dockerfile: Dockerfile.seqwall
-  #   container_name: seqwall_tests
+  seqwall:
+    build: 
+      context: .
+      dockerfile: Dockerfile.seqwall
+    container_name: seqwall_tests
 
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
+    depends_on:
+      postgres:
+        condition: service_healthy
 
-  #   environment:
-  #     LIQUIBASE_COMMAND_CHANGELOG_FILE: changelog/database_changelog.xml
-  #     LIQUIBASE_COMMAND_URL: jdbc:postgresql://postgres:5432/${SEQWALL_DB}
-  #     LIQUIBASE_COMMAND_USERNAME: ${POSTGRES_USER}
-  #     LIQUIBASE_COMMAND_PASSWORD: ${POSTGRES_PASSWORD}
-  #     LIQUIBASE_COMMAND_CONTEXTS: ${APP_ENV}
-  #     POSTGRES_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${SEQWALL_DB}?sslmode=disable
+    environment:
+      LIQUIBASE_COMMAND_CHANGELOG_FILE: changelog/database_changelog.xml
+      LIQUIBASE_COMMAND_URL: jdbc:postgresql://postgres:5432/${SEQWALL_DB}
+      LIQUIBASE_COMMAND_USERNAME: ${POSTGRES_USER}
+      LIQUIBASE_COMMAND_PASSWORD: ${POSTGRES_PASSWORD}
+      LIQUIBASE_COMMAND_CONTEXTS: ${APP_ENV}
+      POSTGRES_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${SEQWALL_DB}?sslmode=disable
 
-  #     seedCount: ${SEED_COUNT}
+      seedCount: ${SEED_COUNT}
 
-  #     SEQWALL_DB: ${SEQWALL_DB}
+      SEQWALL_DB: ${SEQWALL_DB}
 
-  #   volumes:
-  #     - ./migrations:/liquibase/changelog
-  #     - ./scripts:/scripts
-  #     - ./seeds:/liquibase/seeds
+    volumes:
+      - ./migrations:/liquibase/changelog
+      - ./scripts:/scripts
+      - ./seeds:/liquibase/seeds
 
-  #   working_dir: /liquibase
+    working_dir: /liquibase
 
-  #   entrypoint: >
-  #     seqwall staircase
-  #     --postgres-url postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${SEQWALL_DB}?sslmode=disable
-  #     --migrations-path /liquibase/changelog
-  #     --upgrade "/scripts/ci-up-one.sh"
-  #     --downgrade "/scripts/ci-down-one.sh"
+    entrypoint: >
+      seqwall staircase
+      --postgres-url postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${SEQWALL_DB}?sslmode=disable
+      --migrations-path /liquibase/changelog
+      --upgrade "/scripts/ci-up-one.sh"
+      --downgrade "/scripts/ci-down-one.sh"
 
-  #   restart: "no"
+    restart: "no"
   
   postgres_exporter:
     image: prometheuscommunity/postgres-exporter

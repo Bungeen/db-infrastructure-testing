@@ -84,11 +84,15 @@ services:
     working_dir: /liquibase
 
     entrypoint: >
+      sh -c "
+      PGPASSWORD=${POSTGRES_PASSWORD} psql -h postgres -U ${POSTGRES_USER} -d postgres -c 'DROP DATABASE IF EXISTS ${SEQWALL_DB};' &&
+      PGPASSWORD=${POSTGRES_PASSWORD} psql -h postgres -U ${POSTGRES_USER} -d postgres -c 'CREATE DATABASE ${SEQWALL_DB};' &&
       seqwall staircase
       --postgres-url postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${SEQWALL_DB}?sslmode=disable
       --migrations-path /liquibase/changelog
       --upgrade "/scripts/ci-up-one.sh"
       --downgrade "/scripts/ci-down-one.sh"
+      "
 
     restart: "no"
   
@@ -120,4 +124,71 @@ services:
       - "3000:3000"
     volumes:
       - ./data/grafana:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    restart: unless-stopped
+  
+  minio-init:
+    image: minio/mc:latest
+    container_name: minio_init_job
+    depends_on:
+      - minio
+    environment:
+      MINIO_URL: http://minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      BACKUP_USER: ${BACKUP_USER}
+      BACKUP_PASSWORD: ${BACKUP_PASSWORD}
+      BUCKET_BACKUP_NAME: ${BUCKET_BACKUP_NAME}
+    volumes:
+      - ./minio-config/init.sh:/init.sh
+    entrypoint: ["sh", "/init.sh"]
+    restart: "no"
+
+  minio:
+    image: minio/minio
+    container_name: minio_storage
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - ./data/minio:/data
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+
+  backup:
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
+    container_name: backup_job
+    depends_on:
+      - postgres
+      - minio
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+
+      MINIO_URL: http://minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+
+      BUCKET_BACKUP_NAME: ${BUCKET_BACKUP_NAME}
+
+      BACKUP_INTERVAL: ${BACKUP_INTERVAL:-0 2 * * *} 
+      BACKUP_RETENTION_COUNT: ${BACKUP_RETENTION_COUNT:-5}
+    volumes:
+      - ./scripts/backup.sh:/backup.sh
+      - ./backup:/backups
+      - ./backup/exporter.py:/exporter.py
+    ports:
+      - "8080:8080"
+    entrypoint: >
+      sh -c "
+        echo '${BACKUP_INTERVAL} /backup.sh >> /var/log/cron.log 2>&1' > /etc/crontabs/root &&
+        crond -f -l 8 &
+        python3 /exporter.py
+      "
     restart: unless-stopped

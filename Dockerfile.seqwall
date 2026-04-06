@@ -2,7 +2,7 @@ FROM liquibase/liquibase:4.20
 
 USER root
 
-RUN apt-get update && apt-get install -y curl tar \
+RUN apt-get update && apt-get install -y curl tar postgresql-client \
     && curl -L https://github.com/realkarych/seqwall/releases/download/v0.3.0/v0.3.0_seqwall_linux_amd64.tar.gz \
     -o seqwall.tar.gz \
     && tar -xzf seqwall.tar.gz \

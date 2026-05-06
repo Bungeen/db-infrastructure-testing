@@ -1,0 +1,368 @@
+"query","mean_exec_time","calls","shared_blks_hit","shared_blks_read"
+"SELECT date_trunc($1, date), SUM(price) 
+        FROM transaction.income_transactions 
+        GROUP BY 1 ORDER BY 1","4341.7779871478415","602","2396997","238376"
+"SELECT pg_database_size($1)","1504.5818182091998","674","2440","0"
+"SELECT c.name, SUM(et.price) 
+        FROM transaction.expense_transactions et
+        JOIN dictionary.subcategories sc ON et.subcategory_id = sc.subcategory_id
+        JOIN dictionary.categories c ON sc.category_id = c.category_id
+        WHERE et.date > NOW() - INTERVAL $1
+        GROUP BY c.name
+        ORDER BY SUM(et.price) DESC","921.4973889202654","602","3592482","141884"
+"SELECT
+		current_database() datname,
+		schemaname,
+		relname,
+		seq_scan,
+		seq_tup_read,
+		idx_scan,
+		idx_tup_fetch,
+		n_tup_ins,
+		n_tup_upd,
+		n_tup_del,
+		n_tup_hot_upd,
+		n_live_tup,
+		n_dead_tup,
+		n_mod_since_analyze,
+		COALESCE(last_vacuum, $1) as last_vacuum,
+		COALESCE(last_autovacuum, $2) as last_autovacuum,
+		COALESCE(last_analyze, $3) as last_analyze,
+		COALESCE(last_autoanalyze, $4) as last_autoanalyze,
+		vacuum_count,
+		autovacuum_count,
+		analyze_count,
+		autoanalyze_count,
+		pg_indexes_size(relid) as indexes_size,
+		pg_table_size(relid) as table_size
+	FROM
+		pg_stat_user_tables","741.7299927867647","136","105505","36"
+"SELECT
+			COUNT(*) AS segments,
+			SUM(size) AS size
+		FROM pg_ls_waldir()
+		WHERE name ~ $1","129.6884860367647","136","0","0"
+"INSERT INTO transaction.expense_transactions 
+        (user_id, price, date, expense_transaction_type_id, subcategory_id, description)
+        VALUES ($1, $2, NOW(), $3, $4, $5)","43.70212714451829","602","136604","64"
+"INSERT INTO transaction.income_transactions 
+        (user_id, price, date, income_transaction_type_id, category_id, description)
+        VALUES ($1, $2, NOW(), $3, $4, $5)","36.14732306821958","601","134613","28"
+"SELECT 
+    percentile_cont($1) WITHIN GROUP (ORDER BY mean_exec_time) AS ""p95 Latency (ms)""
+FROM pg_stat_statements
+WHERE dbid = (SELECT oid FROM pg_database WHERE datname = current_database())","35.288121297297295","37","58","0"
+"SELECT 
+    query AS ""SQL Query"", 
+    mean_exec_time AS ""Mean Time (ms)"", 
+    calls AS ""Calls""
+FROM pg_stat_statements 
+WHERE dbid = (SELECT oid FROM pg_database WHERE datname = current_database())
+ORDER BY mean_exec_time DESC 
+LIMIT $1","34.40185297297297","37","43","0"
+"SELECT 
+    sum(shared_blks_hit) / nullif(sum(shared_blks_hit + shared_blks_read), $1) AS ""Hit Ratio %""
+FROM pg_stat_statements
+WHERE dbid = (SELECT oid FROM pg_database WHERE datname = current_database())","28.00465597222222","36","36","0"
+"SELECT bi.price, sc.name 
+        FROM planning.budget_items bi
+        JOIN dictionary.subcategories sc ON bi.subcategory_id = sc.subcategory_id
+        WHERE bi.user_id = $1
+        LIMIT $2","17.52679433720927","602","389225","1454"
+"SELECT
+    nsp.oid,
+    nsp.nspname as name,
+    pg_catalog.has_schema_privilege(nsp.oid, $1) as can_create,
+    pg_catalog.has_schema_privilege(nsp.oid, $2) as has_usage,
+    des.description
+FROM
+    pg_catalog.pg_namespace nsp
+    LEFT OUTER JOIN pg_catalog.pg_description des ON
+        (des.objoid=nsp.oid AND des.classoid=$3::regclass)
+WHERE
+             nspname NOT LIKE $4 AND
+            NOT (
+(nsp.nspname = $5 AND EXISTS
+        (SELECT $6 FROM pg_catalog.pg_class WHERE relname = $7 AND
+            relnamespace = nsp.oid LIMIT $8)) OR
+    (nsp.nspname = $9 AND EXISTS
+        (SELECT $10 FROM pg_catalog.pg_class WHERE relname = $11 AND
+            relnamespace = nsp.oid LIMIT $12)) OR
+    (nsp.nspname = $13 AND EXISTS
+        (SELECT $14 FROM pg_catalog.pg_class WHERE relname = $15 AND
+            relnamespace = nsp.oid LIMIT $16))
+    )
+
+    
+ORDER BY nspname","4.494745","1","25","1"
+"SELECT name, setting, COALESCE(unit, $1), short_desc, vartype FROM pg_settings WHERE vartype IN ($2, $3, $4) AND name NOT IN ($5, $6)","3.4825060955882363","136","88","6"
+"select setting from pg_settings where name = $1","2.5756683333333337","3","0","0"
+"SELECT LOCKED FROM public.databasechangeloglock WHERE ID=$1","2.309016333333333","3","4","2"
+"SELECT
+		current_database() datname,
+		schemaname,
+		relname,
+		heap_blks_read,
+		heap_blks_hit,
+		idx_blks_read,
+		idx_blks_hit,
+		toast_blks_read,
+		toast_blks_hit,
+		tidx_blks_read,
+		tidx_blks_hit
+	FROM pg_statio_user_tables","2.2719424632352947","136","28964","6"
+"SELECT set_config($1,$2,$3) FROM pg_show_all_settings() WHERE name = $4","2.1335088000000004","10","0","0"
+"select string_agg(word, $1) from pg_catalog.pg_get_keywords() where word <> ALL ($2::text[])","1.9774759999999998","3","0","0"
+"SELECT MD5SUM FROM public.databasechangelog WHERE MD5SUM IS NOT NULL LIMIT $1","1.6418716666666668","3","1","2"
+"SELECT 
+		  pg_database.datname as datname,
+		  tmp.mode as mode,
+		  COALESCE(count, $1) as count 
+		FROM 
+		  (
+		    VALUES 
+		      ($2), 
+		      ($3), 
+		      ($4), 
+		      ($5), 
+		      ($6), 
+		      ($7), 
+		      ($8), 
+		      ($9), 
+		      ($10)
+		  ) AS tmp(mode)
+		  CROSS JOIN pg_database 
+		  LEFT JOIN (
+		    SELECT 
+		      database, 
+		      lower(mode) AS mode, 
+		      count(*) AS count 
+		    FROM 
+		      pg_locks 
+		    WHERE 
+		      database IS NOT NULL 
+		    GROUP BY 
+		      database, 
+		      lower(mode)
+		  ) AS tmp2 ON tmp.mode = tmp2.mode 
+		  and pg_database.oid = tmp2.database 
+		ORDER BY 
+		  1","0.9913518529411764","136","544","0"
+"SELECT
+				pg_database.datname,
+				tmp.state,
+				tmp2.usename,
+				tmp2.application_name,
+				tmp2.backend_type,
+				tmp2.wait_event_type,
+				tmp2.wait_event,
+				COALESCE(count,$1) as count,
+				COALESCE(max_tx_duration,$2) as max_tx_duration
+			FROM
+				(
+				  VALUES ($3),
+				  		 ($4),
+				  		 ($5),
+				  		 ($6),
+				  		 ($7),
+				  		 ($8)
+				) AS tmp(state) CROSS JOIN pg_database
+			LEFT JOIN
+			(
+				SELECT
+					datname,
+					state,
+					usename,
+					application_name,
+					backend_type,
+					wait_event_type,
+					wait_event,
+					count(*) AS count,
+					MAX(EXTRACT($9 FROM now() - xact_start))::float AS max_tx_duration
+				FROM pg_stat_activity
+				WHERE pid <> pg_backend_pid()
+				GROUP BY datname,state,usename,application_name,backend_type,wait_event_type,wait_event) AS tmp2
+				ON tmp.state = tmp2.state AND pg_database.datname = tmp2.datname","0.6109092426470588","136","408","0"
+"SELECT u.login, p.first_name, p.last_name 
+        FROM person.users u
+        JOIN person.personalities p ON u.personality_id = p.personality_id
+        JOIN person.passwords pw ON u.password_id = pw.password_id
+        WHERE u.user_id = $1","0.5924354461028193","603","8975","70"
+"SELECT COUNT(*) FROM pg_extension WHERE extname IN (
+                $1, $2)","0.5130865","2","1","1"
+"SELECT *,
+				(case pg_is_in_recovery() when $1 then pg_last_wal_receive_lsn() else pg_current_wal_lsn() end) AS pg_current_wal_lsn,
+				(case pg_is_in_recovery() when $2 then pg_wal_lsn_diff(pg_last_wal_receive_lsn(), pg_lsn($3))::float else pg_wal_lsn_diff(pg_current_wal_lsn(), pg_lsn($4))::float end) AS pg_current_wal_lsn_bytes,
+				(case pg_is_in_recovery() when $5 then pg_wal_lsn_diff(pg_last_wal_receive_lsn(), replay_lsn)::float else pg_wal_lsn_diff(pg_current_wal_lsn(), replay_lsn)::float end) AS pg_wal_lsn_diff
+			FROM pg_stat_replication","0.49129731617647066","136","135","0"
+"SELECT state, count(*) as count 
+FROM pg_stat_activity 
+WHERE datname = current_database() 
+GROUP BY state","0.46709554054054064","37","49","0"
+"SELECT
+    db.oid as did, db.datname as name, ta.spcname as spcname, db.datallowconn,
+    db.datistemplate AS is_template,
+    pg_catalog.has_database_privilege(db.oid, $1) as cancreate, datdba as owner,
+    descr.description
+FROM
+    pg_catalog.pg_database db
+    LEFT OUTER JOIN pg_catalog.pg_tablespace ta ON db.dattablespace = ta.oid
+    LEFT OUTER JOIN pg_catalog.pg_shdescription descr ON (
+        db.oid=descr.objoid AND descr.classoid=$2::regclass
+    )
+WHERE         db.oid > $3::OID OR db.datname IN ($4, $5)
+
+ORDER BY datname","0.45471100000000003","4","24","2"
+"SELECT * FROM (SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull OR (t.typtype = $1 AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,t.typtypmod,row_number() OVER (PARTITION BY a.attrelid ORDER BY a.attnum) AS attnum, nullif(a.attidentity, $2) as attidentity,nullif(a.attgenerated, $3) as attgenerated,pg_catalog.pg_get_expr(def.adbin, def.adrelid) AS adsrc,dsc.description,t.typbasetype,t.typtype  FROM pg_catalog.pg_namespace n  JOIN pg_catalog.pg_class c ON (c.relnamespace = n.oid)  JOIN pg_catalog.pg_attribute a ON (a.attrelid=c.oid)  JOIN pg_catalog.pg_type t ON (a.atttypid = t.oid)  LEFT JOIN pg_catalog.pg_attrdef def ON (a.attrelid=def.adrelid AND a.attnum = def.adnum)  LEFT JOIN pg_catalog.pg_description dsc ON (c.oid=dsc.objoid AND a.attnum = dsc.objsubid)  LEFT JOIN pg_catalog.pg_class dc ON (dc.oid=dsc.classoid AND dc.relname=$4)  LEFT JOIN pg_catalog.pg_namespace dn ON (dc.relnamespace=dn.oid AND dn.nspname=$5)  WHERE c.relkind in ($6,$7,$8,$9,$10) and a.attnum > $11 AND NOT a.attisdropped  AND n.nspname LIKE $12 AND c.relname LIKE $13) c WHERE $14  AND attname LIKE $15 ORDER BY nspname,c.relname,attnum","0.3823043333333333","3","231","0"
+"SELECT COUNT(*) FROM public.databasechangeloglock","0.36334616666666664","12","10","2"
+"SELECT
+             gss_authenticated, encrypted
+        FROM
+            pg_catalog.pg_stat_gssapi
+        WHERE pid = pg_backend_pid()","0.3392504","10","0","0"
+"SELECT
+            roles.oid as id, roles.rolname as name,
+            roles.rolsuper as is_superuser,
+            CASE WHEN roles.rolsuper THEN $1 ELSE roles.rolcreaterole END as
+            can_create_role,
+            CASE WHEN roles.rolsuper THEN $2
+            ELSE roles.rolcreatedb END as can_create_db,
+            CASE WHEN $3=ANY(ARRAY(WITH RECURSIVE cte AS (
+            SELECT pg_roles.oid,pg_roles.rolname FROM pg_roles
+                WHERE pg_roles.oid = roles.oid
+            UNION ALL
+            SELECT m.roleid,pgr.rolname FROM cte cte_1
+                JOIN pg_auth_members m ON m.member = cte_1.oid
+                JOIN pg_roles pgr ON pgr.oid = m.roleid)
+            SELECT rolname  FROM cte)) THEN $4
+            ELSE $5 END as can_signal_backend
+        FROM
+            pg_catalog.pg_roles as roles
+        WHERE
+            rolname = current_user","0.3091705","10","40","0"
+"SELECT datid,datname,numbackends,xact_commit,xact_rollback,blks_read,blks_hit,tup_returned,tup_fetched,tup_inserted,tup_updated,tup_deleted,conflicts,temp_files,temp_bytes,deadlocks,blk_read_time,blk_write_time,stats_reset,active_time FROM pg_stat_database","0.2535705","136","136","0"
+"SELECT CASE
+    WHEN (SELECT count(extname) FROM pg_catalog.pg_extension WHERE extname=$1) > $2
+    THEN $3
+    WHEN (SELECT COUNT(*) FROM pg_replication_slots) > $4
+    THEN $5
+    ELSE $6
+END as type","0.23885699999999999","3","2","1"
+"SELECT pg_cancel_backend($1)","0.22351550000000003","2","0","0"
+"SELECT $2 FROM ONLY ""person"".""users"" x WHERE ""user_id"" OPERATOR(pg_catalog.=) $1 FOR KEY SHARE OF x","0.1957666242726519","1203","4780","32"
+"SELECT
+		d.datname,
+		s.relid::regclass::text AS relname,
+		s.param1 AS phase,
+		s.param2 AS heap_blks_total,
+		s.param3 AS heap_blks_scanned,
+		s.param4 AS heap_blks_vacuumed,
+		s.param5 AS index_vacuum_count,
+		s.param6 AS max_dead_tuples,
+		s.param7 AS num_dead_tuples
+	FROM
+		pg_stat_get_progress_info($1::text)
+		s(pid, datid, relid, param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11, param12, param13, param14, param15, param16, param17, param18, param19, param20)
+	LEFT JOIN
+		pg_database d ON s.datid = d.oid","0.17129797794117646","136","19","0"
+"SELECT $1 AS TABLE_CAT, n.nspname AS TABLE_SCHEM, c.relname AS TABLE_NAME,  CASE n.nspname ~ $2 OR n.nspname = $3  WHEN $4 THEN CASE  WHEN n.nspname = $5 OR n.nspname = $6 THEN CASE c.relkind   WHEN $7 THEN $8   WHEN $9 THEN $10   WHEN $11 THEN $12   ELSE $13   END  WHEN n.nspname = $14 THEN CASE c.relkind   WHEN $15 THEN $16   WHEN $17 THEN $18   ELSE $19   END  ELSE CASE c.relkind   WHEN $20 THEN $21   WHEN $22 THEN $23   WHEN $24 THEN $25   WHEN $26 THEN $27   WHEN $28 THEN $29   ELSE $30   END  END  WHEN $31 THEN CASE c.relkind  WHEN $32 THEN $33  WHEN $34 THEN $35  WHEN $36 THEN $37  WHEN $38 then $39  WHEN $40 THEN $41  WHEN $42 THEN $43  WHEN $44 THEN $45  WHEN $46 THEN $47  WHEN $48 THEN $49  ELSE $50  END  ELSE $51  END  AS TABLE_TYPE, d.description AS REMARKS,  $52 as TYPE_CAT, $53 as TYPE_SCHEM, $54 as TYPE_NAME, $55 AS SELF_REFERENCING_COL_NAME, $56 AS REF_GENERATION  FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c  LEFT JOIN pg_catalog.pg_description d ON (c.oid = d.objoid AND d.objsubid = $57  and d.classoid = $58::regclass)  WHERE c.relnamespace = n.oid  AND n.nspname LIKE $59 AND c.relname LIKE $60 AND ($61  OR ( c.relkind = $62 AND n.nspname !~ $63 AND n.nspname <> $64 )  OR ( c.relkind = $65 AND n.nspname !~ $66 AND n.nspname <> $67 ) )  ORDER BY TABLE_TYPE,TABLE_SCHEM,TABLE_NAME","0.13998033333333335","3","45","0"
+"SELECT pg_database.datname, pg_database.datconnlimit FROM pg_database","0.12991317647058823","136","136","0"
+"SET application_name = 'PostgreSQL JDBC Driver'","0.116542","3","0","0"
+"UPDATE public.databasechangeloglock SET LOCKED = $1, LOCKEDBY = $2, LOCKGRANTED = $3 WHERE ID = $4","0.11494266666666667","3","12","0"
+"SELECT
+		slot_name,
+		slot_type,
+		CASE WHEN pg_is_in_recovery() THEN
+		    pg_last_wal_receive_lsn() - $1
+		ELSE
+		    pg_current_wal_lsn() - $2
+		END AS current_wal_lsn,
+		COALESCE(confirmed_flush_lsn, $3) - $4 AS confirmed_flush_lsn,
+		active,
+		safe_wal_size,
+		wal_status
+	FROM pg_replication_slots","0.10715021323529407","136","0","0"
+"UPDATE public.databasechangeloglock SET LOCKED = $1, LOCKEDBY = $2, LOCKGRANTED = NOW() WHERE ID = $3 AND LOCKED = $4","0.10400999999999999","3","12","0"
+"SELECT $2 FROM ONLY ""dictionary"".""expense_transaction_types"" x WHERE ""expense_transaction_type_id"" OPERATOR(pg_catalog.=) $1 FOR KEY SHARE OF x","0.09344098504983389","602","1202","2"
+"SELECT * FROM public.databasechangelog ORDER BY DATEEXECUTED ASC, ORDEREXECUTED ASC","0.09307599999999999","3","21","0"
+"SELECT $2 FROM ONLY ""dictionary"".""categories"" x WHERE ""category_id"" OPERATOR(pg_catalog.=) $1 FOR KEY SHARE OF x","0.08980301996672219","601","2404","0"
+"SELECT slot_name, database, active,
+				(case pg_is_in_recovery() when $1 then pg_wal_lsn_diff(pg_last_wal_receive_lsn(), restart_lsn) else pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn) end) as pg_wal_lsn_diff
+			FROM pg_replication_slots","0.0746957352941176","136","136","0"
+"SELECT $2 FROM ONLY ""dictionary"".""subcategories"" x WHERE ""subcategory_id"" OPERATOR(pg_catalog.=) $1 FOR KEY SHARE OF x","0.07291666279069767","602","2402","6"
+"SELECT $2 FROM ONLY ""dictionary"".""income_transaction_types"" x WHERE ""income_transaction_type_id"" OPERATOR(pg_catalog.=) $1 FOR KEY SHARE OF x","0.06818058569051577","601","1200","2"
+"SET DateStyle=ISO","0.0587397","10","0","0"
+"SELECT * FROM pg_stat_database_conflicts","0.052232220588235304","136","136","0"
+"SELECT
+    db.oid as did, db.datname, db.datallowconn,
+    pg_encoding_to_char(db.encoding) AS serverencoding,
+    has_database_privilege(db.oid, $1) as cancreate,
+    datistemplate
+FROM
+    pg_catalog.pg_database db
+WHERE db.datname = current_database()","0.04748079999999999","10","10","0"
+"SELECT COUNT(*) FROM public.databasechangelog","0.03780433333333333","3","3","0"
+"SET client_encoding='utf-8'","0.03517909999999999","10","0","0"
+"SET extra_float_digits = 3","0.03296966666666667","3","0","0"
+"SET SEARCH_PATH TO public, ""$user"",""public""","0.02960266666666667","3","0","0"
+"SELECT pg_roles.rolname, pg_roles.rolconnlimit FROM pg_roles","0.029367272058823536","136","136","0"
+"SELECT
+		checkpoints_timed
+		,checkpoints_req
+		,checkpoint_write_time
+		,checkpoint_sync_time
+		,buffers_checkpoint
+		,buffers_clean
+		,maxwritten_clean
+		,buffers_backend
+		,buffers_backend_fsync
+		,buffers_alloc
+		,stats_reset
+	FROM pg_stat_bgwriter","0.029090132352941167","136","0","0"
+"select current_schema()","0.029002333333333335","3","9","0"
+"SELECT *,
+				extract($1 from now() - last_archived_time) AS last_archive_age
+			FROM pg_stat_archiver","0.02886569117647059","136","0","0"
+"SELECT CASE WHEN usesuper
+       THEN pg_catalog.pg_is_in_recovery()
+       ELSE $1
+       END as inrecovery,
+       CASE WHEN usesuper AND pg_catalog.pg_is_in_recovery()
+       THEN pg_is_wal_replay_paused()
+       ELSE $2
+       END as isreplaypaused
+FROM pg_catalog.pg_user WHERE usename=current_user","0.028303","1","1","0"
+"SELECT
+	CASE
+		WHEN NOT pg_is_in_recovery() THEN $1
+                WHEN pg_last_wal_receive_lsn () = pg_last_wal_replay_lsn () THEN $2
+		ELSE GREATEST ($3, EXTRACT($4 FROM (now() - pg_last_xact_replay_timestamp())))
+	END AS lag,
+	CASE
+		WHEN pg_is_in_recovery() THEN $5
+		ELSE $6
+	END as is_replica,
+	GREATEST ($7, EXTRACT($8 FROM (now() - pg_last_xact_replay_timestamp()))) as last_replay","0.02088851470588236","136","0","0"
+"SELECT version()","0.018525250000000007","272","0","0"
+"BEGIN","0.017286051705170523","3636","0","0"
+"SELECT
+    has_table_privilege(
+      $1, $2
+    ) has_priviledge
+WHERE EXISTS(
+    SELECT has_schema_privilege($3, $4)
+    WHERE EXISTS(
+        SELECT cl.oid FROM pg_catalog.pg_class cl
+        LEFT JOIN pg_catalog.pg_namespace ns ON ns.oid=relnamespace
+        WHERE relname=$5 AND nspname=$6
+    )
+)","0.012501","1","2","0"
+"SELECT n.nspname, r.relname
+FROM pg_catalog.pg_class r
+    LEFT JOIN pg_catalog.pg_namespace n ON (r.relnamespace = n.oid)
+WHERE r.oid = $1","0.012499","3","6","0"
+"select version()","0.009481687499999999","16","0","0"
+"SHOW SEARCH_PATH","0.004817166666666667","18","0","0"
+"SET client_min_messages=notice","0.0048003","10","0","0"
+"COMMIT","0.0022516724709784387","1206","0","0"
+"ROLLBACK","0.001667","3","0","0"

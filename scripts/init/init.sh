@@ -1,11 +1,17 @@
 #!/bin/bash
 set -e
 
-echo "INIT WORKED" > /tmp/test.txt
+echo "INIT WORKED"
+echo "POSTGRES_USER: ${POSTGRES_USER}"
+echo "POSTGRES_DB:                ${POSTGRES_DB}"
+echo "SEQWALL_DB:                 ${SEQWALL_DB}"
+echo "METRICS_USER:               ${METRICS_USER}"
+echo "METRICS_PASSWORD:           ${METRICS_PASSWORD}"
 
 psql -v ON_ERROR_STOP=1 \
   --username "$POSTGRES_USER" \
-  --dbname "$POSTGRES_DB" <<-EOSQL
+  --dbname "postgres" <<-EOSQL
+    CREATE DATABASE ${POSTGRES_DB};
 
     CREATE USER ${METRICS_USER} WITH PASSWORD '${METRICS_PASSWORD}';
     GRANT CONNECT ON DATABASE ${POSTGRES_DB} TO ${METRICS_USER};

@@ -1,39 +1,128 @@
 version: '3.8'
 
 services:
-  postgres:
-    build: 
-      context: .
-      dockerfile: Dockerfile.postgres
-    container_name: postgres_data_base
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.9
+    container_name: etcd
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      PGDATA: ${PGDATA}
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd:2379
+    ports:
+      - "2379:2379"
+    volumes:
+      - etcd_data:/etcd-data
+    command: etcd --data-dir /etcd-data
 
+  patroni-primary:
+    build:
+      context: .
+      dockerfile: Dockerfile.patroni
+    container_name: patroni_primary
+    shm_size: '1gb'
+    environment:
+      PATRONI_NAME: patroni-primary
+      PATRONI_SCOPE: postgres_cluster
+      PATRONI_ETCD3_HOSTS: "etcd:2379"
+      PATRONI_POSTGRESQL_DATA_DIR: ${PGDATA}
+
+      POSTGRES_DB: ${POSTGRES_DB}
+      SEQWALL_DB: ${SEQWALL_DB}
       METRICS_USER: ${METRICS_USER}
       METRICS_PASSWORD: ${METRICS_PASSWORD}
-      SEQWALL_DB: ${SEQWALL_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+
+      PATRONI_SUPERUSER_USERNAME: ${POSTGRES_USER}
+      PATRONI_SUPERUSER_PASSWORD: ${POSTGRES_PASSWORD}
+      PATRONI_REPLICATION_USERNAME: replicator
+      PATRONI_REPLICATION_PASSWORD: ${REPLICATION_PASSWORD}
+
+      PATRONI_POSTGRESQL_AUTHENTICATION_SUPERUSER_PASSWORD: ${POSTGRES_PASSWORD}
+      PATRONI_POSTGRESQL_AUTHENTICATION_REPLICATION_PASSWORD: ${REPLICATION_PASSWORD}
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "5433:5432"
+      - "8008:8008"
     volumes:
-      - ./data/postgres:/var/lib/postgresql/data
-      - ./scripts/init:/docker-entrypoint-initdb.d
+      - patroni_primary_data:/var/lib/postgresql/data
+      - ./patroni0.yml:/etc/patroni/patroni.yml:ro
+      - ./scripts/init:/scripts/init
+    depends_on:
+      - etcd
+
+  patroni-replica1:
+    build:
+      context: .
+      dockerfile: Dockerfile.patroni
+    container_name: patroni_replica1
+    shm_size: '1gb'
+    environment:
+      PATRONI_NAME: patroni-replica1
+      PATRONI_SCOPE: postgres_cluster
+      PATRONI_ETCD3_HOSTS: "etcd:2379"
+      PATRONI_POSTGRESQL_DATA_DIR: ${PGDATA}
+      PATRONI_SUPERUSER_USERNAME: ${POSTGRES_USER}
+      PATRONI_SUPERUSER_PASSWORD: ${POSTGRES_PASSWORD}
+      PATRONI_REPLICATION_USERNAME: replicator
+      PATRONI_REPLICATION_PASSWORD: ${REPLICATION_PASSWORD}
+      PATRONI_POSTGRESQL_AUTHENTICATION_SUPERUSER_PASSWORD: ${POSTGRES_PASSWORD}
+      PATRONI_POSTGRESQL_AUTHENTICATION_REPLICATION_PASSWORD: ${REPLICATION_PASSWORD}
+    ports:
+      - "5434:5432"
+      - "8009:8008"
+    volumes:
+      - patroni_replica1_data:/var/lib/postgresql/data
+      - ./patroni1.yml:/etc/patroni/patroni.yml:ro
+    depends_on:
+      - etcd
+      - patroni-primary
+
+  patroni-replica2:
+    build:
+      context: .
+      dockerfile: Dockerfile.patroni
+    container_name: patroni_replica2
+    shm_size: '1gb'
+    environment:
+      PATRONI_NAME: patroni-replica2
+      PATRONI_SCOPE: postgres_cluster
+      PATRONI_ETCD3_HOSTS: "etcd:2379"
+      PATRONI_POSTGRESQL_DATA_DIR: ${PGDATA}
+      PATRONI_SUPERUSER_USERNAME: ${POSTGRES_USER}
+      PATRONI_SUPERUSER_PASSWORD: ${POSTGRES_PASSWORD}
+      PATRONI_REPLICATION_USERNAME: replicator
+      PATRONI_REPLICATION_PASSWORD: ${REPLICATION_PASSWORD}
+      PATRONI_POSTGRESQL_AUTHENTICATION_SUPERUSER_PASSWORD: ${POSTGRES_PASSWORD}
+      PATRONI_POSTGRESQL_AUTHENTICATION_REPLICATION_PASSWORD: ${REPLICATION_PASSWORD}
+    ports:
+      - "5435:5432"
+      - "8010:8008"
+    volumes:
+      - patroni_replica2_data:/var/lib/postgresql/data
+      - ./patroni2.yml:/etc/patroni/patroni.yml:ro
+    depends_on:
+      - etcd
+      - patroni-primary
+
+
+  haproxy:
+    image: haproxy:2.8
+    container_name: haproxy
+    ports:
+      - "${POSTGRES_PORT}:5000" # main
+      - "7000:7000"
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on: []
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 1m30s
-      timeout: 30s
-      retries: 5
-      start_period: 30s
+      test: |
+        bash -c 'exec 3<>/dev/tcp/127.0.0.1/80; echo -e "GET / HTTP/1.1\nConnection: close\n" >&3; cat <&3 | grep -q "200 OK"'
   
   liquibase:
     image: liquibase/liquibase:4.20
     container_name: liquibase_migrations
     environment:
       LIQUIBASE_COMMAND_CHANGELOG_FILE: changelog/database_changelog.xml
-      LIQUIBASE_COMMAND_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      LIQUIBASE_COMMAND_URL: jdbc:postgresql://haproxy:5000/${POSTGRES_DB}
       LIQUIBASE_COMMAND_USERNAME: ${POSTGRES_USER}
       LIQUIBASE_COMMAND_PASSWORD: ${POSTGRES_PASSWORD}
 
@@ -45,10 +134,17 @@ services:
       - ./seeds:/liquibase/seeds
       - ./scripts:/scripts
 
-    command: update
+    command: >
+      bash -c "
+      if [ -n \"${MIGRATION_VERSION}\" ]; then
+        liquibase updateToTag ${MIGRATION_VERSION};
+      else
+        liquibase update;
+      fi
+      "
 
     depends_on:
-      postgres:
+      haproxy:
         condition: service_healthy
       seqwall:
         condition: service_completed_successfully
@@ -59,52 +155,44 @@ services:
       context: .
       dockerfile: Dockerfile.seqwall
     container_name: seqwall_tests
-
     depends_on:
-      postgres:
+      haproxy:
         condition: service_healthy
-
     environment:
       LIQUIBASE_COMMAND_CHANGELOG_FILE: changelog/database_changelog.xml
-      LIQUIBASE_COMMAND_URL: jdbc:postgresql://postgres:5432/${SEQWALL_DB}
+      LIQUIBASE_COMMAND_URL: jdbc:postgresql://haproxy:5000/${SEQWALL_DB}
       LIQUIBASE_COMMAND_USERNAME: ${POSTGRES_USER}
       LIQUIBASE_COMMAND_PASSWORD: ${POSTGRES_PASSWORD}
       LIQUIBASE_COMMAND_CONTEXTS: ${APP_ENV}
-      POSTGRES_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${SEQWALL_DB}?sslmode=disable
-
-      seedCount: ${SEED_COUNT}
-
+      POSTGRES_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@haproxy:5000/${SEQWALL_DB}?sslmode=disable
+      seedCount: ${SEED_COUNT_SEQWALL}
       SEQWALL_DB: ${SEQWALL_DB}
-
     volumes:
       - ./migrations:/liquibase/changelog
       - ./scripts:/scripts
       - ./seeds:/liquibase/seeds
-
     working_dir: /liquibase
-
     entrypoint: >
       sh -c "
-      PGPASSWORD=${POSTGRES_PASSWORD} psql -h postgres -U ${POSTGRES_USER} -d postgres -c 'DROP DATABASE IF EXISTS ${SEQWALL_DB};' &&
-      PGPASSWORD=${POSTGRES_PASSWORD} psql -h postgres -U ${POSTGRES_USER} -d postgres -c 'CREATE DATABASE ${SEQWALL_DB};' &&
+      PGPASSWORD=${POSTGRES_PASSWORD} psql -h haproxy -p 5000 -U ${POSTGRES_USER} -d postgres -c 'DROP DATABASE IF EXISTS ${SEQWALL_DB};' &&
+      PGPASSWORD=${POSTGRES_PASSWORD} psql -h haproxy -p 5000 -U ${POSTGRES_USER} -d postgres -c 'CREATE DATABASE ${SEQWALL_DB};' &&
       seqwall staircase
-      --postgres-url postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${SEQWALL_DB}?sslmode=disable
+      --postgres-url postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@haproxy:5000/${SEQWALL_DB}?sslmode=disable
       --migrations-path /liquibase/changelog
       --upgrade "/scripts/ci-up-one.sh"
       --downgrade "/scripts/ci-down-one.sh"
       "
-
     restart: "no"
   
   postgres_exporter:
     image: prometheuscommunity/postgres-exporter
     container_name: postgres_exporter
     environment:
-      DATA_SOURCE_NAME: "postgresql://${METRICS_USER}:${METRICS_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://${METRICS_USER}:${METRICS_PASSWORD}@haproxy:5000/${POSTGRES_DB}?sslmode=disable"
     ports:
       - "9187:9187"
     depends_on:
-      postgres:
+      haproxy:
         condition: service_healthy
     restart: unless-stopped
   
@@ -125,6 +213,10 @@ services:
     volumes:
       - ./data/grafana:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     restart: unless-stopped
   
   minio-init:
@@ -157,6 +249,11 @@ services:
       - ./data/minio:/data
     command: server /data --console-address ":9001"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   backup:
     build:
@@ -164,12 +261,15 @@ services:
       dockerfile: Dockerfile.backup
     container_name: backup_job
     depends_on:
-      - postgres
-      - minio
+      haproxy:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PORT: ${POSTGRES_PORT}
 
       MINIO_URL: http://minio:9000
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
@@ -187,8 +287,46 @@ services:
       - "8080:8080"
     entrypoint: >
       sh -c "
+        env >> /etc/environment &&
         echo '${BACKUP_INTERVAL} /backup.sh >> /var/log/cron.log 2>&1' > /etc/crontabs/root &&
         crond -f -l 8 &
         python3 /exporter.py
       "
     restart: unless-stopped
+
+  workload:
+    build: ./workload
+    container_name: workload_service
+    environment:
+      DB_HOST: haproxy
+      DB_PORT: "5000"
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "8000:8000"
+    depends_on:
+      haproxy:
+        condition: service_healthy
+      liquibase:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  k6:
+    image: grafana/k6:latest
+    container_name: k6_load_test
+    volumes:
+      - ./load:/scripts
+      - ./profiling:/output
+    command: run /scripts/k6_script.js --summary-export=/output/k6_summary.json
+    depends_on:
+      - workload
+    restart: "no"
+    networks:
+      - default
+
+volumes:
+  patroni_primary_data:
+  patroni_replica1_data:
+  patroni_replica2_data:
+  etcd_data:

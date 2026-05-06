@@ -6,4 +6,18 @@ datasources:
     access: proxy
     url: http://prometheus:9090
     isDefault: true
-    editable: false 
+    editable: false
+
+  - name: PostgreSQL_DB
+    type: postgres
+    access: proxy
+    url: haproxy:5000
+    database: ${POSTGRES_DB}
+    user: ${POSTGRES_USER}
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}
+    jsonData:
+      sslmode: "disable"
+      postgresVersion: 1500
+      timescaledb: false
+    editable: true

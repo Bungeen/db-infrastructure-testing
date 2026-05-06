@@ -1,11 +1,11 @@
 --liquibase formatted sql
 
---changeset mike:008_income_transactions context:dev,test
+--changeset mike:008_seed_income_transactions context:dev,test
 INSERT INTO dictionary.income_transaction_types (name, description)
 SELECT
     word() || ' ' || word(),
     paragraph()
-FROM generate_series(1, ${seedCount});
+FROM generate_series(1, 100);
 
 INSERT INTO transaction.income_transactions
 (
@@ -54,17 +54,51 @@ INSERT INTO transaction.income_links
 (income_transaction_id, receipt_link_id)
 SELECT
     it.income_transaction_id,
-    rl.receipt_link_id
+    r.arr[floor(random() * array_length(r.arr, 1)) + 1]
 FROM transaction.income_transactions it
-JOIN transaction.receipt_links rl ON TRUE
+CROSS JOIN (
+    SELECT array_agg(receipt_link_id) AS arr
+    FROM transaction.receipt_links
+) r
 WHERE random() < 0.05;
 
 INSERT INTO transaction.income_files
 (receipt_file_id, income_transaction_id)
 SELECT
-    rf.receipt_file_id,
+    f.arr[floor(random() * array_length(f.arr, 1)) + 1],
     it.income_transaction_id
 FROM transaction.income_transactions it
-JOIN transaction.receipt_files rf ON TRUE
+CROSS JOIN (
+    SELECT array_agg(receipt_file_id) AS arr
+    FROM transaction.receipt_files
+) f
 WHERE random() < 0.05;
+
+-- INSERT INTO transaction.income_links
+-- (income_transaction_id, receipt_link_id)
+-- SELECT
+--     it.income_transaction_id,
+--     rl.receipt_link_id
+-- FROM transaction.income_transactions it
+-- JOIN LATERAL (
+--     SELECT receipt_link_id
+--     FROM transaction.receipt_links
+--     ORDER BY random()
+--     LIMIT 1
+-- ) rl ON TRUE
+-- WHERE random() < 0.05;
+
+-- INSERT INTO transaction.income_files
+-- (receipt_file_id, income_transaction_id)
+-- SELECT
+--     rf.receipt_file_id,
+--     it.income_transaction_id
+-- FROM transaction.income_transactions it
+-- JOIN LATERAL (
+--     SELECT receipt_file_id
+--     FROM transaction.receipt_files
+--     ORDER BY random()
+--     LIMIT 1
+-- ) rf ON TRUE
+-- WHERE random() < 0.05;
 --rollback empty

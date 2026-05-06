@@ -7,6 +7,6 @@ SELECT
     word() || ' ' || word(),
     paragraph()
 FROM dictionary.categories c
-JOIN generate_series(1, ${seedCount}) g(i) ON TRUE
+JOIN generate_series(1, 5) g(i) ON TRUE
 WHERE random() < 0.6;
 --rollback empty

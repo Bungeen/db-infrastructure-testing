@@ -58,7 +58,7 @@
     <include file="006_create_budget_planning_items_table.sql" relativeToChangelogFile="true"/>
 
     <!-- Seeds -->
-    <include file="../seeds/006_budget_planning_items.sql"
+    <include file="../seeds/006_seed_budget_planning_items.sql"
              relativeToChangelogFile="true"/>
 
     <changeSet id="tag-v1.5" author="mike">
@@ -78,7 +78,7 @@
     <include file="008_income_transactions_tables.sql" relativeToChangelogFile="true"/>
 
     <!-- Seeds -->
-    <include file="../seeds/008_income_transactions.sql"
+    <include file="../seeds/008_seed_income_transactions.sql"
              relativeToChangelogFile="true"/>
 
     <changeSet id="tag-v1.7" author="mike">
@@ -88,11 +88,61 @@
     <include file="009_expense_transactions_tables.sql" relativeToChangelogFile="true"/>
 
     <!-- Seeds -->
-    <include file="../seeds/009_expense_transactions.sql"
+    <include file="../seeds/009_seed_expense_transactions.sql"
              relativeToChangelogFile="true"/>
 
     <changeSet id="tag-v1.8" author="mike">
         <tagDatabase tag="v1.8"/>
+    </changeSet>
+
+    <include file="010_add_user_total_spent.sql"
+             relativeToChangelogFile="true"/>
+
+    <!-- Seeds -->
+    <include file="../seeds/010_seed_total_spent.sql"
+             relativeToChangelogFile="true"/>
+
+    <changeSet id="tag-v2.0" author="mike">
+        <tagDatabase tag="v2.0"/>
+    </changeSet>
+
+    <include file="011_add_expense_approvals.sql"
+             relativeToChangelogFile="true"/>
+
+    <!-- Seeds -->
+    <include file="../seeds/011_seed_expense_approvals.sql"
+             relativeToChangelogFile="true"/>
+
+    <changeSet id="tag-v2.1" author="mike">
+        <tagDatabase tag="v2.1"/>
+    </changeSet>
+
+    <include file="012_add_btree_hash_indexes.sql"
+             relativeToChangelogFile="true"/>
+
+    <changeSet id="tag-v3.0" author="mike">
+        <tagDatabase tag="v3.0"/>
+    </changeSet>
+
+    <include file="013_add_addition_indexes.sql"
+             relativeToChangelogFile="true"/>
+
+    <changeSet id="tag-v3.1" author="mike">
+        <tagDatabase tag="v3.1"/>
+    </changeSet>
+
+    <include file="014_add_category_stats.sql"
+             relativeToChangelogFile="true"/>
+
+    <changeSet id="tag-v3.2" author="mike">
+        <tagDatabase tag="v3.2"/>
+    </changeSet>
+
+    <include file="015_add_trend_stats.sql"
+             relativeToChangelogFile="true"/>
+
+    <changeSet id="tag-v3.3" author="mike">
+        <tagDatabase tag="v3.2"/>
     </changeSet>
 
 </databaseChangeLog>

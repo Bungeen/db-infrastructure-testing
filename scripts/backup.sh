@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+echo "Start backup"
+
 MINIO_ALIAS="myminio"
 
 RETENTION="${BACKUP_RETENTION_COUNT:-5}"
@@ -13,7 +15,8 @@ TIMESTAMP=$(date +%Y-%m-%d-%H-%M-%S)
 FILE="backup-$TIMESTAMP.sql"
 
 PGPASSWORD=$POSTGRES_PASSWORD pg_dump \
-  -h postgres \
+  -h haproxy \
+  -p 5000 \
   -U $POSTGRES_USER \
   $POSTGRES_DB > /tmp/$FILE
 

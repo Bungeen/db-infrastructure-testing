@@ -1,11 +1,11 @@
 --liquibase formatted sql
 
---changeset mike:009_expense_transactions context:dev,test
+--changeset mike:009_seed_expense_transactions context:dev,test
 INSERT INTO dictionary.expense_transaction_types (name, description)
 SELECT
     word() || ' ' || word(),
     paragraph()
-FROM generate_series(1, ${seedCount});
+FROM generate_series(1, 100);
 
 INSERT INTO transaction.expense_transactions
 (
@@ -54,17 +54,23 @@ INSERT INTO transaction.expense_links
 (expense_transaction_id, receipt_link_id)
 SELECT
     et.expense_transaction_id,
-    rl.receipt_link_id
+    r.arr[floor(random() * array_length(r.arr, 1)) + 1]
 FROM transaction.expense_transactions et
-JOIN transaction.receipt_links rl ON TRUE
+CROSS JOIN (
+    SELECT array_agg(receipt_link_id) AS arr
+    FROM transaction.receipt_links
+) r
 WHERE random() < 0.05;
 
 INSERT INTO transaction.expense_files
 (receipt_file_id, expense_transaction_id)
 SELECT
-    rf.receipt_file_id,
+    f.arr[floor(random() * array_length(f.arr, 1)) + 1],
     et.expense_transaction_id
 FROM transaction.expense_transactions et
-JOIN transaction.receipt_files rf ON TRUE
+CROSS JOIN (
+    SELECT array_agg(receipt_file_id) AS arr
+    FROM transaction.receipt_files
+) f
 WHERE random() < 0.05;
 --rollback empty

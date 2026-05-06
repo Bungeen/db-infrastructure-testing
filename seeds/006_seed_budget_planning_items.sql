@@ -1,6 +1,6 @@
 --liquibase formatted sql
 
---changeset mike:006_budget_planning_items context:dev,test
+--changeset mike:006_seed_budget_planning_items context:dev,test
 INSERT INTO planning.budget_items (subcategory_id, description, price, user_id, year)
 SELECT
     sub_ids[ceil(random() * array_length(sub_ids, 1))],

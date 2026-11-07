@@ -1,0 +1,27 @@
+scope: postgres_cluster
+name: patroni-replica1
+
+restapi:
+  listen: 0.0.0.0:8008
+  connect_address: patroni-replica1:8008
+
+etcd3:
+  hosts: etcd:2379
+
+postgresql:
+  listen: 0.0.0.0:5432
+  connect_address: patroni-replica1:5432
+  data_dir: /var/lib/postgresql/data/pgdata 
+  bin_dir: /usr/lib/postgresql/15/bin
+  authentication:
+    replication:
+      username: replicator
+      password: ${REPLICATION_PASSWORD}
+    superuser:
+      username: user
+      password: ${POSTGRES_PASSWORD}
+
+tags:
+  nofailover: false
+  noloadbalance: false
+  clonefrom: false

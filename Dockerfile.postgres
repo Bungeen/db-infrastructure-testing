@@ -1,0 +1,20 @@
+ARG PG_MAJOR_VERSION=15
+FROM postgres:$PG_MAJOR_VERSION
+
+ARG PG_MAJOR_VERSION
+
+RUN apt-get update && apt-get install -y \
+    git \
+    gawk \
+    gcc \
+    make \
+    postgresql-server-dev-$PG_MAJOR_VERSION \
+    postgresql-plpython3-$PG_MAJOR_VERSION \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install --break-system-packages Faker
+
+WORKDIR /src
+RUN git clone https://gitlab.com/dalibo/postgresql_faker.git . \
+    && make clean && make && make install

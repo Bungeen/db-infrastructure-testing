@@ -1,0 +1,10 @@
+# PostgreSQL data
+data
+
+# Environment files
+.env
+
+# Docker
+.DS_Store
+
+metrics.prom
